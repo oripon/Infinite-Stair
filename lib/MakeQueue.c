@@ -8,9 +8,10 @@
 
 //----- Varaiables for QUEUE ------
 #define MAX_QUEUE_SIZE 30
-#define FIRST_VALUE 3
+#define FIRST_VALUE 4
 
-int queue[MAX_QUEUE_SIZE];
+
+//int queue[MAX_QUEUE_SIZE];
 int front = 0, rear = 0;
 int value;
 int prev_value;
@@ -18,7 +19,7 @@ int cons_count;
 int prev_inc;
 int direction;
 
-int enqueue(int v)
+int enqueue(int *queue, int v)
 {
 	//check if the queue is full
 	if ((rear + 1) % MAX_QUEUE_SIZE == front)
@@ -33,9 +34,10 @@ int enqueue(int v)
 	}
 }
 
-char dequeue()
+char dequeue(int *queue)
 {
 	//check if the queue is empty
+	/*
 	if (front == rear)
 	{
 		return -1;//deque failed
@@ -44,6 +46,22 @@ char dequeue()
 	{
 		int _value = queue[front];
 		front = (front + 1) % MAX_QUEUE_SIZE;
+		return _value;
+	}
+	*/
+	if (front == rear)
+	{
+		return -1;//deque failed
+	}
+	else
+	{
+		int _value = queue[front];
+		for(int i = 0; i<MAX_QUEUE_SIZE-1; i++)
+		{
+			queue[i] = queue[i+1];
+		}
+		rear -= 1;
+		//front = (front + 1) % MAX_QUEUE_SIZE;
 		return _value;
 	}
 }
@@ -64,59 +82,6 @@ int RandInc(int _wrongNum)//based on probability
 	{
 		IncOrDec = 1;
 	}
-
-	/*
-	if ((cons_count == 0) || (cons_count == 1))
-	{
-		if (random >= 0 && random < 5)
-			IncOrDec = -1;
-		else
-			IncOrDec = 1;
-	}
-	else if (cons_count == 2)
-	{
-		if (random >= 0 && random < 10)
-			IncOrDec = -1;
-		else
-			IncOrDec = 1;
-	}
-	else if (cons_count == 3)
-	{
-		if (random >= 0 && random < 15)
-			IncOrDec = -1;
-		else
-			IncOrDec = 1;
-	}
-	else if (cons_count == 4)
-	{
-		if (random >= 0 && random < 20)
-			IncOrDec = -1;
-		else
-			IncOrDec = 1;
-	}
-	else if (cons_count == 5)
-	{
-		if (random >= 0 && random < 40)
-			IncOrDec = -1;
-		else
-			IncOrDec = 1;
-	}
-	else if (cons_count == 6)
-	{
-		if (random >= 0 && random < 65)
-			IncOrDec = -1;
-		else
-			IncOrDec = 1;
-	}
-	else if (cons_count == 7)
-	{
-		if (random >= 0 && random < 80)
-			IncOrDec = -1;
-		else
-			IncOrDec = 1;
-	}
-	*/
-
 	if(_wrongNum != 1)
 	{
 		if (IncOrDec == 1)
@@ -128,7 +93,7 @@ int RandInc(int _wrongNum)//based on probability
 	return IncOrDec;
 }
 
-int insertRightValue()
+int insertRightValue(int *queue)
 {
 	int increase = 0;
 	int wrongNum = 0;
@@ -138,9 +103,18 @@ int insertRightValue()
 		increase = RandInc(wrongNum);
 		value = value + (increase * direction);//from 0 to 7
 
+		if (enqueue(queue, value) == -1)
+		{
+			value = prev_value;
+			return 1;//fullflags on
+		}
+		prev_value = value;
+		wrongNum = 0;
+		break;
+
 		if (value >= 0 && value <= 7)
 		{
-			if (enqueue(value) == -1)
+			if (enqueue(queue, value) == -1)
 			{
 				value = prev_value;
 				return 1;//fullflags on
@@ -162,17 +136,39 @@ int insertRightValue()
 	}
 	return 0;
 }
+void Init_blocks(int *queue)
+{
+	int front = 0, rear = 0;
+	int fullflags = 0;
+	int dequeue_value = 0;
+	direction = -1;
 
+	for(int i = 0; i<6; i++)
+	{
+		enqueue(queue,-999);//insert first value
+	}
+	value = FIRST_VALUE;//first value(3)
+	enqueue(queue,value);//insert first value
+	cons_count = 1;//count how many stairs to same direction
+
+	while (fullflags != 1)
+	{
+		fullflags = insertRightValue(queue);
+	}
+}
+/*
 int main(void)
 {
 	char enter;
 	int fullflags = 0;
 	int dequeue_value = 0;
 	direction = -1;
-	
+
+	//Init
 	value = FIRST_VALUE;//first value(3)
 	enqueue(value);//insert first value
 	cons_count = 1;//count how many stairs to same direction
+	//
 
 	while (fullflags != 1)
 	{
@@ -183,7 +179,8 @@ int main(void)
 	{
 		printf("%d--> ", queue[i]);
 	}
-	
+
+
 	printf("\n-----------------------------------------------------\n");
 
 	while(1)
@@ -204,3 +201,4 @@ int main(void)
 
 	return 0;
 }
+*/

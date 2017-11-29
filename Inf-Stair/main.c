@@ -2,6 +2,14 @@
 #include <gdk/gdkkeysyms.h>
 #include <time.h>
 #include <stdlib.h>
+#include "../include/MakeQueue.h"
+
+#define block_dist_y 22
+#define block_dist_x 40
+
+#define MAX_QUEUE_SIZE 30
+
+int queue[MAX_QUEUE_SIZE];
 
 //Objs
 GtkWidget *window;
@@ -12,7 +20,7 @@ GtkWidget *TurnButton;
 GtkWidget *BG;
 GtkWidget *Title;
 GtkWidget *Charactor[12];
-GtkWidget *block;
+GtkWidget *block[30];
 
 GThread *Title_thread;
 GThread *Idle_thread;
@@ -23,6 +31,7 @@ int isDirRight = 0;
 int isFirstMove = 0;
 int isMove = 0;
 int On_Anim = 0;
+int block_pos = 0;
 
 //###############################
 //Threads
@@ -78,6 +87,13 @@ static gpointer Charactor_Anim_Idle_thread()
 	return NULL;
 }
 //Charactor Move anim
+void Set_blocks()
+{
+	for(int i = 0; i<30; i++)
+	{
+		gtk_fixed_move(GTK_FIXED(fixed),block[i],155+(queue[i]-4)*block_dist_x,625-i*block_dist_y);
+	}
+}
 gpointer Charactor_Anim_Move_thread()
 {
 	while(1)
@@ -87,6 +103,11 @@ gpointer Charactor_Anim_Move_thread()
 			gtk_widget_hide(Charactor[i]);
 		}
 		gtk_widget_show(Charactor[On_Anim]);
+		for(int i = 0; i<30; i++)
+		{
+			gtk_fixed_move(GTK_FIXED(fixed),block[i],155+(queue[i] - 4 + block_pos)*block_dist_x,625-i*block_dist_y);
+		}
+		//Set_blocks();
 		usleep(50000);
 	}
 	g_thread_exit(Move_thread);
@@ -123,6 +144,10 @@ gboolean UpButton_Clicked(GtkWidget *widget, GdkEventKey *event, gpointer user_d
 	{
 		isFirstMove = 1;
 		isMove= 1;
+		block_pos = block_pos + 1 - (isDirRight*2);
+
+		dequeue(queue);
+		insertRightValue(queue);
 	}
 	if(event ->keyval == GDK_space)
 	{
@@ -136,6 +161,10 @@ gboolean UpButton_Clicked(GtkWidget *widget, GdkEventKey *event, gpointer user_d
 		{
 			isDirRight = 1;
 		}
+		block_pos = block_pos + 1 - (isDirRight*2);
+
+		dequeue(queue);
+		insertRightValue(queue);
 	}
 	return 1;
 }
@@ -181,8 +210,11 @@ int main(int argc, char *argv[])
 	gtk_widget_show(TurnButton);
 
 	//block
-	block = gtk_image_new_from_file("imgs/block.png");
-	gtk_widget_show(block);
+	for(int i = 0; i<30; i++)
+	{
+		block[i] = gtk_image_new_from_file("imgs/block.png");
+		gtk_widget_show(block[i]);
+	}
 
 	//Charactor
 	Charactor[0] = gtk_image_new_from_file("imgs/char/idle1.png");//FirstIdle
@@ -217,8 +249,14 @@ int main(int argc, char *argv[])
 	gtk_fixed_put(GTK_FIXED(fixed),UpButton,270,500);
 	gtk_fixed_put(GTK_FIXED(fixed),TurnButton,50,500);
 
+	//4 -> 155,625-6*22
+	//y = 22
+	//x = 40
 	//Blocks
-	gtk_fixed_put(GTK_FIXED(fixed),block,100,450);
+	for(int i = 0; i<30; i++)
+	{
+		gtk_fixed_put(GTK_FIXED(fixed),block[i],155+i*block_dist_x,625-i*block_dist_y);
+	}
 
 	//Charactor
 	for(int i = 0; i<=11; i++)
@@ -238,7 +276,7 @@ int main(int argc, char *argv[])
 	Idle_thread = g_thread_new(NULL, Charactor_Anim_Idle_thread,NULL);
 	Move_thread = g_thread_new(NULL, Charactor_Anim_Move_thread,NULL);
 	On_Anim_thread = g_thread_new(NULL, Charactor_On_Anim_thread,NULL);
-
+	Init_blocks(queue);
 	gtk_main();
 
 	g_thread_join(Title_thread);

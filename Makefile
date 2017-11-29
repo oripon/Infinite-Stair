@@ -1,5 +1,5 @@
 Wal = make
-Dirs = Inf-Stair libs
+Dirs = lib Inf-Stair
 .PHONY: all clean
 
 all:
