@@ -10,12 +10,10 @@
 #define MAX_QUEUE_SIZE 30
 
 int queue[MAX_QUEUE_SIZE];
-
+int queue_prev[MAX_QUEUE_SIZE];
 //Objs
 GtkWidget *window;
 GtkWidget *fixed;
-GtkWidget *UpButton;
-GtkWidget *TurnButton;
 //Images
 GtkWidget *BG;
 GtkWidget *Title;
@@ -138,16 +136,23 @@ gpointer Charactor_On_Anim_thread()
 //###############################
 //signal funcs
 //###############################
+void Block_Ctrl()
+{
+	block_pos = block_pos + 1 - (isDirRight*2);
+	for(int i = 0; i<MAX_QUEUE_SIZE; i++)
+	{
+		queue_prev[i] = queue[i];
+	}
+	dequeue(queue);
+	insertRightValue(queue);
+}
 gboolean UpButton_Clicked(GtkWidget *widget, GdkEventKey *event, gpointer user_data)
 {
 	if(event ->keyval == GDK_Up)
 	{
 		isFirstMove = 1;
 		isMove= 1;
-		block_pos = block_pos + 1 - (isDirRight*2);
-
-		dequeue(queue);
-		insertRightValue(queue);
+		Block_Ctrl();
 	}
 	if(event ->keyval == GDK_space)
 	{
@@ -161,10 +166,7 @@ gboolean UpButton_Clicked(GtkWidget *widget, GdkEventKey *event, gpointer user_d
 		{
 			isDirRight = 1;
 		}
-		block_pos = block_pos + 1 - (isDirRight*2);
-
-		dequeue(queue);
-		insertRightValue(queue);
+		Block_Ctrl();
 	}
 	return 1;
 }
@@ -198,16 +200,6 @@ int main(int argc, char *argv[])
 	//Title
 	Title = gtk_image_new_from_file("imgs/Title.png");
 	gtk_widget_show(Title);
-
-	//UpButton
-	UpButton = gtk_button_new_with_label("Up");
-	gtk_widget_set_size_request(UpButton,50,50);
-	gtk_widget_show(UpButton);
-
-	//UpButton
-	TurnButton = gtk_button_new_with_label("Turn");
-	gtk_widget_set_size_request(TurnButton,50,50);
-	gtk_widget_show(TurnButton);
 
 	//block
 	for(int i = 0; i<30; i++)
@@ -245,13 +237,6 @@ int main(int argc, char *argv[])
 	gtk_fixed_put(GTK_FIXED(fixed),BG,0,0);
 	gtk_fixed_put(GTK_FIXED(fixed),Title,45,-100);
 
-	//Buttons
-	gtk_fixed_put(GTK_FIXED(fixed),UpButton,270,500);
-	gtk_fixed_put(GTK_FIXED(fixed),TurnButton,50,500);
-
-	//4 -> 155,625-6*22
-	//y = 22
-	//x = 40
 	//Blocks
 	for(int i = 0; i<30; i++)
 	{
