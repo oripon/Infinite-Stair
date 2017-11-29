@@ -5,10 +5,15 @@
 #include <stdlib.h>
 #include <time.h>
 
-#define MAX_QUEUE_SIZE 100
 
-char queue[MAX_QUEUE_SIZE];
-int front = 3, rear = 3;
+//----- Varaiables for QUEUE ------
+#define MAX_QUEUE_SIZE 30
+#define FIRST_VALUE 3
+
+int queue[MAX_QUEUE_SIZE];
+int front = 0, rear = 0;
+int value;
+int prev_value;
 int cons_count;
 int prev_inc;
 int direction;
@@ -123,18 +128,12 @@ int RandInc(int _wrongNum)//based on probability
 	return IncOrDec;
 }
 
-int main(void)
+int insertRightValue()
 {
 	int increase = 0;
-	int value = 3;//<0 ~ 7>, init = 3
 	int wrongNum = 0;
-	direction = -1;
 
-	enqueue(value);
-	cons_count = 1;
-	printf("->%d", value);
-
-	while (1)
+	while(1)
 	{
 		increase = RandInc(wrongNum);
 		value = value + (increase * direction);//from 0 to 7
@@ -143,10 +142,12 @@ int main(void)
 		{
 			if (enqueue(value) == -1)
 			{
-				break;
+				value = prev_value;
+				return 1;//fullflags on
 			}
-			printf("->%d", value);
+			prev_value = value;
 			wrongNum = 0;
+			break;
 		}
 		else if (value < 0)
 		{
@@ -158,14 +159,48 @@ int main(void)
 			value = 7;
 			wrongNum = 1;
 		}
-	}	
-	printf("\n\n");
+	}
+	return 0;
+}
 
-	while ((value = dequeue()) != -1)
+int main(void)
+{
+	char enter;
+	int fullflags = 0;
+	int dequeue_value = 0;
+	direction = -1;
+	
+	value = FIRST_VALUE;//first value(3)
+	enqueue(value);//insert first value
+	cons_count = 1;//count how many stairs to same direction
+
+	while (fullflags != 1)
 	{
-		printf("->%d", value);
+		fullflags = insertRightValue();
+	}
+
+	for(int i=0; i<MAX_QUEUE_SIZE-1; i++)
+	{
+		printf("%d--> ", queue[i]);
+	}
+	
+	printf("\n-----------------------------------------------------\n");
+
+	while(1)
+	{
+		scanf("%c", &enter);
+
+		dequeue_value = dequeue();
+		//printf("value : %d | next front : %d\n", dequeue_value, front % MAX_QUEUE_SIZE);
+
+		insertRightValue();
+
+		for (int i = 0; i < MAX_QUEUE_SIZE; i++)
+		{
+			printf("%d ", queue[i]);
+		}
+		printf("\n");
 	}
 
 	return 0;
 }
-
