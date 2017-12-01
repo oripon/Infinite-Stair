@@ -30,10 +30,33 @@ GThread *On_Anim_thread;
 int isDirRight = 0;
 int isFirstMove = 0;
 int isMove = 0;
-int On_Anim = 0;
+int isBlockMove = 0;
 int Prev_Char_Anim = 0;
 int block_pos = 0;
+int block_five_pos = 0;
+int isDie = 0;
 
+void Change_Char_Anim(int n)
+{
+	for(int i = 0; i<=11; i++)
+	{
+		gdk_threads_enter();
+		gtk_widget_hide(Charactor[i]);
+		gdk_threads_leave();
+	}
+	gdk_threads_enter();
+	gtk_widget_show(Charactor[n]);
+	gdk_threads_leave();
+}
+void Change_Block_Anim(int x, int y)
+{
+	for(int i = 0; i<30; i++)
+	{
+		gdk_threads_enter();
+		gtk_fixed_move(GTK_FIXED(fixed),block[i],155+(queue[i] - 4 + block_pos)*block_dist_x + x,625-i*block_dist_y + y);
+		gdk_threads_leave();
+	}
+}
 //###############################
 //Threads
 //###############################
@@ -42,6 +65,7 @@ int block_pos = 0;
 static gpointer Title_Anim_thread()
 {
 	int ypos = -100;
+	isDie = 1;
 	for(int i = 0; i < 100; i++)
 	{
 		ypos += 2;
@@ -66,6 +90,7 @@ static gpointer Title_Anim_thread()
 		gdk_threads_leave();
 		usleep(10000);
 	}
+	isDie = 0;
 
 	g_thread_exit(Title_thread);
 	return NULL;
@@ -81,40 +106,47 @@ static gpointer Charactor_Anim_Idle_thread()
 			{
 				g_thread_exit(Idle_thread);
 			}
-			On_Anim = 0;
+			Change_Char_Anim(0);
+			//On_Anim = 0;
 			usleep(300000);
-			On_Anim = 1;
+			Change_Char_Anim(1);
+			//On_Anim = 1;
 			usleep(300000);
-			On_Anim = 2;
+			Change_Char_Anim(2);
+			//On_Anim = 2;
 			usleep(300000);
-			On_Anim = 3;
+			Change_Char_Anim(3);
+			//On_Anim = 3;
 			usleep(300000);
 		}
 	}
 	return NULL;
 }
-//Charactor Move anim
-gpointer Charactor_Anim_Move_thread()
+//Block Move anim
+gpointer Block_Move_thread()
 {
 	while(1)
 	{
-		for(int i = 0; i<=11; i++)
+		if(isBlockMove == 1)
 		{
-			gdk_threads_enter();
-			gtk_widget_hide(Charactor[Prev_Char_Anim]);
-			gdk_threads_leave();
+			isBlockMove = 0;
+			if(isDirRight == 0)
+			{
+				for(int i = -40; i<=0; i+=5)
+				{
+					Change_Block_Anim(i, i/2);
+					usleep(5000);
+				}
+			}
+			else
+			{
+				for(int i = 40; i>=0; i-=5)
+				{
+					Change_Block_Anim(i, -i/2);
+					usleep(5000);
+				}
+			}
 		}
-		gdk_threads_enter();
-		gtk_widget_show(Charactor[On_Anim]);
-		gdk_threads_leave();
-		Prev_Char_Anim = On_Anim;
-		for(int i = 0; i<30; i++)
-		{
-			gdk_threads_enter();
-			gtk_fixed_move(GTK_FIXED(fixed),block[i],155+(queue[i] - 4 + block_pos)*block_dist_x,625-i*block_dist_y);
-			gdk_threads_leave();
-		}
-		usleep(50000);
 	}
 	g_thread_exit(Move_thread);
 	return NULL;
@@ -128,14 +160,31 @@ gpointer Charactor_On_Anim_thread()
 		{
 			isMove = 0;
 
-			On_Anim = 4 + isDirRight * 4;
+			Change_Char_Anim(4 + isDirRight * 4);
 			usleep(50000);
-			On_Anim = 5 + isDirRight * 4;
+			Change_Char_Anim(5 + isDirRight * 4);
 			usleep(50000);
-			On_Anim = 6 + isDirRight * 4;
+			Change_Char_Anim(6 + isDirRight * 4);
 			usleep(50000);
-			On_Anim = 7 + isDirRight * 4;
+			Change_Char_Anim(7 + isDirRight * 4);
 			usleep(50000);
+
+			//Die Condition
+			if(queue[6] - 4 + block_pos != 0)
+			{
+				isDie = 1;
+				sleep(1);
+				for(int i = 0; i<100; i++)
+				{
+					for(int j = 0; j<=11; j++)
+					{
+						gdk_threads_enter();
+						gtk_fixed_move(GTK_FIXED(fixed),Charactor[j],140,350+i*10);
+						gdk_threads_leave();
+					}
+					usleep(7000);
+				}
+			}
 		}
 	}
 	g_thread_exit(On_Anim_thread);
@@ -154,34 +203,34 @@ void Block_Ctrl()
 	}
 	dequeue(queue);
 	insertRightValue(queue);
-
-	g_print("%d",queue[5] - 4 + block_pos);
-	if(queue[5] - 4 + block_pos != 1 && queue[5] - 4 + block_pos != -1 )
-	{
-		g_print("Die!!\n");
-	}
 }
 gboolean UpButton_Clicked(GtkWidget *widget, GdkEventKey *event, gpointer user_data)
 {
-	if(event ->keyval == GDK_Up)
+	if(isDie == 0)
 	{
-		isFirstMove = 1;
-		isMove= 1;
-		Block_Ctrl();
-	}
-	if(event ->keyval == GDK_space)
-	{
-		isFirstMove = 1;
-		isMove= 1;
-		if(isDirRight == 1)
+		if(event ->keyval == GDK_Up)
 		{
-			isDirRight = 0;
+			isFirstMove = 1;
+			isMove= 1;
+			isBlockMove = 1;
+			Block_Ctrl();
 		}
-		else
+		if(event ->keyval == GDK_space)
 		{
-			isDirRight = 1;
+			gtk_widget_hide(Title);
+			isFirstMove = 1;
+			isMove= 1;
+			isBlockMove = 1;
+			if(isDirRight == 1)
+			{
+				isDirRight = 0;
+			}
+			else
+			{
+				isDirRight = 1;
+			}
+			Block_Ctrl();
 		}
-		Block_Ctrl();
 	}
 	return 1;
 }
@@ -196,7 +245,6 @@ void destroy()
 //###############################
 int main(int argc, char *argv[])
 {
-	//g_thread_init(NULL);
 	gdk_threads_init();
 	gdk_threads_enter();
 	gtk_init(&argc,&argv);
@@ -215,9 +263,8 @@ int main(int argc, char *argv[])
 	BG = gtk_image_new_from_file("imgs/BG.png");
 	gtk_widget_show(BG);
 
-	//Title
-	Title = gtk_image_new_from_file("imgs/Title.png");
-	gtk_widget_show(Title);
+
+
 
 	//block
 	for(int i = 0; i<30; i++)
@@ -253,7 +300,7 @@ int main(int argc, char *argv[])
 	gtk_container_add(GTK_CONTAINER(window),fixed);
 
 	gtk_fixed_put(GTK_FIXED(fixed),BG,0,0);
-	gtk_fixed_put(GTK_FIXED(fixed),Title,45,-100);
+	//gtk_fixed_put(GTK_FIXED(fixed),Title,45,-100);
 
 	//Blocks
 	for(int i = 0; i<30; i++)
@@ -277,9 +324,18 @@ int main(int argc, char *argv[])
 
 	Title_thread = g_thread_new(NULL, Title_Anim_thread,NULL);
 	Idle_thread = g_thread_new(NULL, Charactor_Anim_Idle_thread,NULL);
-	Move_thread = g_thread_new(NULL, Charactor_Anim_Move_thread,NULL);
+	Move_thread = g_thread_new(NULL, Block_Move_thread,NULL);
 	On_Anim_thread = g_thread_new(NULL, Charactor_On_Anim_thread,NULL);
+
 	Init_blocks(queue);
+	for(int i = 0; i<30; i++)
+	{
+		gtk_fixed_move(GTK_FIXED(fixed),block[i],155+(queue[i] - 4 + block_pos)*block_dist_x,625-i*block_dist_y);
+	}
+	//Title
+	Title = gtk_image_new_from_file("imgs/Title.png");
+	gtk_widget_show(Title);
+	gtk_fixed_put(GTK_FIXED(fixed),Title,45,-100);
 
 	gtk_main();
 	gdk_threads_leave();
