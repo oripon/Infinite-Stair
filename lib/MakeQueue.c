@@ -1,9 +1,6 @@
 #define _CRT_SECURE_NO_WARNINGS
 
-#include <stdio.h>
-#include <string.h>
 #include <stdlib.h>
-#include <time.h>
 
 
 //----- Varaiables for QUEUE ------
@@ -140,7 +137,6 @@ void Init_blocks(int *queue)
 {
 	int front = 0, rear = 0;
 	int fullflags = 0;
-	int dequeue_value = 0;
 	direction = -1;
 
 	for(int i = 0; i<6; i++)

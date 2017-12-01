@@ -1,5 +1,7 @@
 ﻿#include <gtk/gtk.h>
 #include <gdk/gdkkeysyms.h>
+#include <glib.h>
+
 #include <time.h>
 #include <stdlib.h>
 #include "../include/MakeQueue.h"
@@ -29,6 +31,7 @@ int isDirRight = 0;
 int isFirstMove = 0;
 int isMove = 0;
 int On_Anim = 0;
+int Prev_Char_Anim = 0;
 int block_pos = 0;
 
 //###############################
@@ -42,19 +45,25 @@ static gpointer Title_Anim_thread()
 	for(int i = 0; i < 100; i++)
 	{
 		ypos += 2;
+		gdk_threads_enter();
 		gtk_fixed_move(GTK_FIXED(fixed),Title,45,ypos);
+		gdk_threads_leave();
 		usleep(10000);
 	}
 	for(int i = 0; i < 5; i++)
 	{
 		ypos -= 2;
+		gdk_threads_enter();
 		gtk_fixed_move(GTK_FIXED(fixed),Title,45,ypos);
+		gdk_threads_leave();
 		usleep(10000);
 	}
 	for(int i = 0; i < 5; i++)
 	{
 		ypos += 2;
+		gdk_threads_enter();
 		gtk_fixed_move(GTK_FIXED(fixed),Title,45,ypos);
+		gdk_threads_leave();
 		usleep(10000);
 	}
 
@@ -85,27 +94,26 @@ static gpointer Charactor_Anim_Idle_thread()
 	return NULL;
 }
 //Charactor Move anim
-void Set_blocks()
-{
-	for(int i = 0; i<30; i++)
-	{
-		gtk_fixed_move(GTK_FIXED(fixed),block[i],155+(queue[i]-4)*block_dist_x,625-i*block_dist_y);
-	}
-}
 gpointer Charactor_Anim_Move_thread()
 {
 	while(1)
 	{
 		for(int i = 0; i<=11; i++)
 		{
-			gtk_widget_hide(Charactor[i]);
+			gdk_threads_enter();
+			gtk_widget_hide(Charactor[Prev_Char_Anim]);
+			gdk_threads_leave();
 		}
+		gdk_threads_enter();
 		gtk_widget_show(Charactor[On_Anim]);
+		gdk_threads_leave();
+		Prev_Char_Anim = On_Anim;
 		for(int i = 0; i<30; i++)
 		{
+			gdk_threads_enter();
 			gtk_fixed_move(GTK_FIXED(fixed),block[i],155+(queue[i] - 4 + block_pos)*block_dist_x,625-i*block_dist_y);
+			gdk_threads_leave();
 		}
-		//Set_blocks();
 		usleep(50000);
 	}
 	g_thread_exit(Move_thread);
@@ -115,6 +123,7 @@ gpointer Charactor_On_Anim_thread()
 {
 	while(1)
 	{
+		usleep(100);
 		if(isMove == 1)
 		{
 			isMove = 0;
@@ -137,7 +146,7 @@ gpointer Charactor_On_Anim_thread()
 //signal funcs
 //###############################
 void Block_Ctrl()
-{
+{	
 	block_pos = block_pos + 1 - (isDirRight*2);
 	for(int i = 0; i<MAX_QUEUE_SIZE; i++)
 	{
@@ -145,6 +154,12 @@ void Block_Ctrl()
 	}
 	dequeue(queue);
 	insertRightValue(queue);
+
+	g_print("%d",queue[5] - 4 + block_pos);
+	if(queue[5] - 4 + block_pos != 1 && queue[5] - 4 + block_pos != -1 )
+	{
+		g_print("Die!!\n");
+	}
 }
 gboolean UpButton_Clicked(GtkWidget *widget, GdkEventKey *event, gpointer user_data)
 {
@@ -181,6 +196,9 @@ void destroy()
 //###############################
 int main(int argc, char *argv[])
 {
+	//g_thread_init(NULL);
+	gdk_threads_init();
+	gdk_threads_enter();
 	gtk_init(&argc,&argv);
 
 	//#################
@@ -262,7 +280,9 @@ int main(int argc, char *argv[])
 	Move_thread = g_thread_new(NULL, Charactor_Anim_Move_thread,NULL);
 	On_Anim_thread = g_thread_new(NULL, Charactor_On_Anim_thread,NULL);
 	Init_blocks(queue);
+
 	gtk_main();
+	gdk_threads_leave();
 
 	g_thread_join(Title_thread);
 	g_thread_join(Idle_thread);
