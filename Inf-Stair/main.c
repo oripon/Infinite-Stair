@@ -21,11 +21,16 @@ GtkWidget *BG;
 GtkWidget *Title;
 GtkWidget *Charactor[12];
 GtkWidget *block[30];
-
+GtkWidget *bar;
 GThread *Title_thread;
 GThread *Idle_thread;
 GThread *Move_thread;
 GThread *On_Anim_thread;
+GThread *Timer_thread;
+GThread *Music_Thread;
+GThread *Sub_Sound_Thread[3];
+
+
 //Values
 int isDirRight = 0;
 int isFirstMove = 0;
@@ -35,6 +40,13 @@ int Prev_Char_Anim = 0;
 int block_pos = 0;
 int block_five_pos = 0;
 int isDie = 0;
+int TimeVal = 300;
+
+int bgm = 0;
+int click = 0;
+int click2 = 0;
+int click3 = 0;
+int falling = 0;
 
 void Change_Char_Anim(int n)
 {
@@ -57,10 +69,30 @@ void Change_Block_Anim(int x, int y)
 		gdk_threads_leave();
 	}
 }
+
 //###############################
 //Threads
 //###############################
-
+static gpointer Timer_On_Thread()
+{
+	while(1)
+	{
+		if(isDie == 0 && isFirstMove == 1)
+		{
+			if(TimeVal == 0)
+			{
+				Die();
+			}
+			TimeVal  = TimeVal - 1;
+			gdk_threads_enter();
+			gtk_widget_set_size_request(bar,TimeVal,20);
+			gtk_widget_show(bar);
+			gdk_threads_leave();
+			usleep(5000);
+		}
+	}
+	return NULL;
+}
 //Title Anim
 static gpointer Title_Anim_thread()
 {
@@ -170,26 +202,22 @@ gpointer Charactor_On_Anim_thread()
 			usleep(50000);
 
 			//Die Condition
-			if(queue[6] - 4 + block_pos != 0)
+			if(queue[6] - 4 + block_pos != 0 && isDie == 0)
 			{
-				isDie = 1;
-				sleep(1);
-				for(int i = 0; i<100; i++)
-				{
-					for(int j = 0; j<=11; j++)
-					{
-						gdk_threads_enter();
-						gtk_fixed_move(GTK_FIXED(fixed),Charactor[j],140,350+i*10);
-						gdk_threads_leave();
-					}
-					usleep(7000);
-				}
+				Die();
 			}
 		}
 	}
 	g_thread_exit(On_Anim_thread);
 	return NULL;
 }
+gpointer Music_On_Thread()
+{
+	system("aplay ./sounds/bgm.wav");
+
+	return NULL;
+}
+
 
 //###############################
 //signal funcs
@@ -210,17 +238,50 @@ gboolean UpButton_Clicked(GtkWidget *widget, GdkEventKey *event, gpointer user_d
 	{
 		if(event ->keyval == GDK_Up)
 		{
-			isFirstMove = 1;
-			isMove= 1;
-			isBlockMove = 1;
-			Block_Ctrl();
-		}
-		if(event ->keyval == GDK_space)
-		{
+			if(click == 1)
+			{
+				if(click2 == 1)
+				{
+					click3 = 1;
+				}
+				else
+				{
+					click2 = 1;
+				}
+			}
+			else
+			{
+				click = 1;
+			}
 			gtk_widget_hide(Title);
 			isFirstMove = 1;
 			isMove= 1;
 			isBlockMove = 1;
+			TimeVal = 300;
+			Block_Ctrl();
+		}
+		if(event ->keyval == GDK_space)
+		{
+			if(click == 1)
+			{
+				if(click2 == 1)
+				{
+					click3 = 1;
+				}
+				else
+				{
+					click2 = 1;
+				}
+			}
+			else
+			{
+				click = 1;
+			}
+			gtk_widget_hide(Title);
+			isFirstMove = 1;
+			isMove= 1;
+			isBlockMove = 1;
+			TimeVal = 300;
 			if(isDirRight == 1)
 			{
 				isDirRight = 0;
@@ -326,6 +387,11 @@ int main(int argc, char *argv[])
 	Idle_thread = g_thread_new(NULL, Charactor_Anim_Idle_thread,NULL);
 	Move_thread = g_thread_new(NULL, Block_Move_thread,NULL);
 	On_Anim_thread = g_thread_new(NULL, Charactor_On_Anim_thread,NULL);
+	Timer_thread = g_thread_new(NULL, Timer_On_Thread,NULL);
+	Music_Thread = g_thread_new(NULL, Music_On_Thread,NULL);
+	Sub_Sound_Thread[0] = g_thread_new(NULL, Sub_Sound_On_Thread,NULL);
+	Sub_Sound_Thread[1] = g_thread_new(NULL, Sub_Sound_On_Thread2,NULL);
+	Sub_Sound_Thread[2] = g_thread_new(NULL, Sub_Sound_On_Thread3,NULL);
 
 	Init_blocks(queue);
 	for(int i = 0; i<30; i++)
@@ -337,6 +403,12 @@ int main(int argc, char *argv[])
 	gtk_widget_show(Title);
 	gtk_fixed_put(GTK_FIXED(fixed),Title,45,-100);
 
+	//Healthbar
+	bar = gtk_image_new_from_file("imgs/Bar.png");
+	gtk_widget_set_size_request(bar,300,30);
+	gtk_fixed_put(GTK_FIXED(fixed),bar,20,30);
+
+
 	gtk_main();
 	gdk_threads_leave();
 
@@ -344,6 +416,6 @@ int main(int argc, char *argv[])
 	g_thread_join(Idle_thread);
 	g_thread_join(Move_thread);
 	g_thread_join(On_Anim_thread);
-
+	g_thread_join(Timer_thread);
 	return 0;
 }
