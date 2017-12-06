@@ -69,7 +69,23 @@ void Change_Block_Anim(int x, int y)
 		gdk_threads_leave();
 	}
 }
-
+void Die()
+{
+	Change_Char_Anim(4 + isDirRight * 4);
+	isDie = 1;
+	sleep(1);
+	falling = 1;
+	for(int i = 0; i<50; i++)
+	{
+		for(int j = 0; j<=11; j++)
+		{
+			gdk_threads_enter();
+			gtk_fixed_move(GTK_FIXED(fixed),Charactor[j],140,350+i*10);
+			gdk_threads_leave();
+		}
+		usleep(7000);
+	}
+}
 //###############################
 //Threads
 //###############################
@@ -217,8 +233,47 @@ gpointer Music_On_Thread()
 
 	return NULL;
 }
-
-
+gpointer Sub_Sound_On_Thread()
+{
+	while(1)
+	{
+		if(click == 1)
+		{
+			system("aplay ./sounds/step_sound.wav");
+			click = 0;
+		}
+		if(falling == 1)
+		{
+			system("aplay ./sounds/falling_sound.wav");
+			falling = 0;
+		}
+	}
+	return NULL;
+}
+gpointer Sub_Sound_On_Thread2()
+{
+	while(1)
+	{
+		if(click2 == 1)
+		{
+			system("aplay ./sounds/step_sound.wav");
+			click2 = 0;
+		}
+	}
+	return NULL;
+}
+gpointer Sub_Sound_On_Thread3()
+{
+	while(1)
+	{
+		if(click3 == 1)
+		{
+			system("aplay ./sounds/step_sound.wav");
+			click3 = 0;
+		}
+	}
+	return NULL;
+}
 //###############################
 //signal funcs
 //###############################
