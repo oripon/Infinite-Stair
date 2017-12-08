@@ -22,9 +22,11 @@ GtkWidget *Title;
 GtkWidget *Charactor[12];
 GtkWidget *block[30];
 GtkWidget *bar;
+
 GThread *Title_thread;
 GThread *Idle_thread;
 GThread *Move_thread;
+GThread *BG_thread;
 GThread *On_Anim_thread;
 GThread *Timer_thread;
 GThread *Music_Thread;
@@ -41,6 +43,9 @@ int block_pos = 0;
 int block_five_pos = 0;
 int isDie = 0;
 int TimeVal = 300;
+int bg_x = 0;
+int bg_y = 0;
+int isBGMove = 0;
 
 int bgm = 0;
 int click = 0;
@@ -199,6 +204,43 @@ gpointer Block_Move_thread()
 	g_thread_exit(Move_thread);
 	return NULL;
 }
+//BG Move anim
+gpointer BG_Move_thread()
+{
+	while(1)
+	{
+		if(isBGMove == 1)
+		{
+			isBGMove = 0;
+			if(isDirRight == 0)
+			{
+				bg_x += 10;
+				bg_y += 10;
+				for(int i = -10; i<=0; i+=1)
+				{
+					gdk_threads_enter();
+					gtk_fixed_move(GTK_FIXED(fixed),BG,-530 + bg_x + i,-3360 + bg_y + i);
+					gdk_threads_leave();
+					usleep(5000);
+				}
+			}
+			else
+			{
+				bg_x -= 10;
+				bg_y += 10;
+				for(int i = 10; i>=0; i-=1)
+				{
+					gdk_threads_enter();
+					gtk_fixed_move(GTK_FIXED(fixed),BG,-530 + bg_x + i,-3360 + bg_y - i);
+					gdk_threads_leave();
+					usleep(5000);
+				}
+			}
+		}
+	}
+	g_thread_exit(Move_thread);
+	return NULL;
+}
 gpointer Charactor_On_Anim_thread()
 {
 	while(1)
@@ -312,6 +354,7 @@ gboolean UpButton_Clicked(GtkWidget *widget, GdkEventKey *event, gpointer user_d
 			isFirstMove = 1;
 			isMove= 1;
 			isBlockMove = 1;
+			isBGMove = 1;
 			TimeVal = 300;
 			Block_Ctrl();
 		}
@@ -336,6 +379,7 @@ gboolean UpButton_Clicked(GtkWidget *widget, GdkEventKey *event, gpointer user_d
 			isFirstMove = 1;
 			isMove= 1;
 			isBlockMove = 1;
+			isBGMove = 1;
 			TimeVal = 300;
 			if(isDirRight == 1)
 			{
@@ -376,7 +420,7 @@ int main(int argc, char *argv[])
 	gtk_widget_show(window);
 
 	//BG
-	BG = gtk_image_new_from_file("imgs/BG.png");
+	BG = gtk_image_new_from_file("imgs/background.gif");
 	gtk_widget_show(BG);
 
 
@@ -415,7 +459,7 @@ int main(int argc, char *argv[])
 	gtk_widget_set_size_request(fixed,0,0);
 	gtk_container_add(GTK_CONTAINER(window),fixed);
 
-	gtk_fixed_put(GTK_FIXED(fixed),BG,0,0);
+	gtk_fixed_put(GTK_FIXED(fixed),BG,-530,-3360);
 	//gtk_fixed_put(GTK_FIXED(fixed),Title,45,-100);
 
 	//Blocks
@@ -441,6 +485,7 @@ int main(int argc, char *argv[])
 	Title_thread = g_thread_new(NULL, Title_Anim_thread,NULL);
 	Idle_thread = g_thread_new(NULL, Charactor_Anim_Idle_thread,NULL);
 	Move_thread = g_thread_new(NULL, Block_Move_thread,NULL);
+	BG_thread = g_thread_new(NULL, BG_Move_thread,NULL);
 	On_Anim_thread = g_thread_new(NULL, Charactor_On_Anim_thread,NULL);
 	Timer_thread = g_thread_new(NULL, Timer_On_Thread,NULL);
 	Music_Thread = g_thread_new(NULL, Music_On_Thread,NULL);
